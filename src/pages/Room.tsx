@@ -12,7 +12,7 @@ export default function Room() {
   const navigate = useNavigate();
   const [room, setRoom] = useState<RoomState | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [playerName, setPlayerName] = useState('');
+  const [playerName, setPlayerName] = useState(sessionStorage.getItem('playerName') || '');
   const [hasJoined, setHasJoined] = useState(false);
 
   const userId = sessionStorage.getItem('userId') || (() => {
@@ -24,7 +24,12 @@ export default function Room() {
   useEffect(() => {
     if (!roomId) return;
 
-    socket.emit('check-room', { roomId });
+    const performCheck = () => {
+      socket.emit('check-room', { roomId, userId });
+    };
+
+    performCheck();
+    socket.on('connect', performCheck);
 
     const handleRoomUpdate = (updatedRoom: RoomState) => {
       setRoom(updatedRoom);
@@ -44,6 +49,7 @@ export default function Room() {
     socket.on('error', handleError);
 
     return () => {
+      socket.off('connect', performCheck);
       socket.off('room-update', handleRoomUpdate);
       socket.off('error', handleError);
     };
@@ -52,6 +58,7 @@ export default function Room() {
   const handleJoin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!playerName.trim()) return;
+    sessionStorage.setItem('playerName', playerName);
     socket.emit('join-room', { roomId, userId, playerName });
   };
 

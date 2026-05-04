@@ -75,9 +75,20 @@ async function startServer() {
     });
 
     // Check Room
-    socket.on('check-room', ({ roomId }) => {
+    socket.on('check-room', ({ roomId, userId }) => {
       const room = rooms[roomId];
       if (room) {
+        if (userId) {
+          const isPlayer = room.players.some(p => p.id === userId);
+          const isMod = room.moderatorId === userId;
+          if (isPlayer || isMod) {
+            socket.join(roomId);
+            if (isPlayer) {
+              const p = room.players.find(p => p.id === userId);
+              if (p) p.socketId = socket.id;
+            }
+          }
+        }
         socket.emit('room-update', room);
       } else {
         socket.emit('error', 'Room not found');

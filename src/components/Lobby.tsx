@@ -2,6 +2,7 @@ import { RoomState, Role } from '../types';
 import { socket } from '../socket';
 import { Users, Info, Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost } from 'lucide-react';
 import { useState } from 'react';
+import QRCode from 'react-qr-code';
 
 interface Props {
   room: RoomState;
@@ -37,10 +38,15 @@ export default function Lobby({ room, isModerator, userId }: Props) {
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 pb-4 mt-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-[2px] uppercase">MILLER'S <span className="text-[#ff4d4d]">HOLLOW</span></h1>
-          <p className="text-xs opacity-50 mt-1">Room ID: <span className="text-[#a78bfa]">{room.id}</span></p>
+      <div className="flex flex-col md:flex-row items-center justify-between border-b border-white/5 pb-4 mt-4 gap-4">
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-2 rounded-lg shrink-0">
+            <QRCode value={window.location.href} size={64} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-[2px] uppercase text-left">MILLER'S <span className="text-[#ff4d4d]">HOLLOW</span></h1>
+            <p className="text-xs opacity-50 mt-1 text-left">Room ID: <span className="text-[#a78bfa] text-base font-bold ml-1">{room.id}</span></p>
+          </div>
         </div>
         <div className="flex gap-4 items-center">
           <div className="text-right">
