@@ -7,9 +7,11 @@ export interface Player {
   role?: Role;
   isAlive: boolean;
   voteTarget?: string;
+  isLover?: boolean;
 }
 
 export type GamePhase = 'lobby' | 'night' | 'day' | 'voting';
+export type Winner = 'wolves' | 'villagers' | 'lovers' | null;
 
 export interface RoomState {
   id: string;
@@ -18,4 +20,5 @@ export interface RoomState {
   status: GamePhase;
   deck: Record<Role, number>;
   votesRevealed: boolean;
+  winner?: Winner;
 }

@@ -1,7 +1,9 @@
 import { RoomState, GamePhase } from '../types';
 import { socket } from '../socket';
-import { RefreshCw, Users, Eye, Moon, Sun, Vote, UserX, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { RefreshCw, Users, Eye, Moon, Sun, Vote, UserX, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSoundEngine } from '../lib/useSoundEngine';
+import GameOverScreen from './GameOver';
 
 interface Props {
   room: RoomState;
@@ -21,6 +23,25 @@ const roleColors: Record<string, string> = {
 
 export default function ModeratorDashboard({ room, userId }: Props) {
   const [showResetModal, setShowResetModal] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    return localStorage.getItem('werewolf_muted') === 'true';
+  });
+
+  const { playSound } = useSoundEngine(isMuted);
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    localStorage.setItem('werewolf_muted', String(newMuted));
+  };
+  
+  // Watch for phase changes to trigger sounds
+  useEffect(() => {
+    if (room.status === 'night') playSound('night');
+    if (room.status === 'voting') playSound('gavel');
+    if (room.winner === 'wolves') playSound('defeat'); // Mod hears default defeat/victory (wolves = defeat, villagers = victory)
+    if (room.winner === 'villagers') playSound('victory');
+  }, [room.status, room.winner]);
 
   const confirmReset = () => {
     socket.emit('reset-game', { roomId: room.id, userId });
@@ -33,6 +54,7 @@ export default function ModeratorDashboard({ room, userId }: Props) {
 
   const toggleAlive = (targetId: string, isAlive: boolean) => {
     socket.emit('set-alive-status', { roomId: room.id, userId, targetId, isAlive });
+    if (!isAlive) playSound('howl'); // Play howl when moderator manually eliminates
   };
 
   const revealVotes = () => {
@@ -47,6 +69,14 @@ export default function ModeratorDashboard({ room, userId }: Props) {
 
   return (
     <>
+      {room.winner && (
+        <GameOverScreen 
+          winner={room.winner} 
+          isModerator={true} 
+          onPlayAgain={() => socket.emit('reset-game', { roomId: room.id, userId })} 
+        />
+      )}
+      
       {/* Background Phase Overlay */}
       <div 
         className={`fixed inset-0 pointer-events-none transition-colors duration-1000 z-0 ${
@@ -63,7 +93,10 @@ export default function ModeratorDashboard({ room, userId }: Props) {
             <p className="text-xs opacity-50 mt-1">Room ID: <span className="text-[#a78bfa]">{room.id}</span></p>
           </div>
           <div className="flex gap-4 items-center">
-            <div className="text-right">
+            <button onClick={toggleMute} className="text-white/50 hover:text-white transition-colors">
+              {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            </button>
+            <div className="text-right ml-2 border-l border-white/10 pl-4">
               <p className="text-xs opacity-80 uppercase tracking-widest">{room.status}</p>
               <p className="text-[10px] text-[#10b981]">● Game in Progress</p>
             </div>

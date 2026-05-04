@@ -14,9 +14,11 @@ interface Player {
   role?: Role;
   isAlive: boolean;
   voteTarget?: string;
+  isLover?: boolean;
 }
 
 type GamePhase = 'lobby' | 'night' | 'day' | 'voting';
+type Winner = 'wolves' | 'villagers' | 'lovers' | null;
 
 interface Room {
   id: string;
@@ -25,6 +27,7 @@ interface Room {
   status: GamePhase;
   deck: Record<Role, number>;
   votesRevealed: boolean;
+  winner: Winner;
 }
 
 const rooms: Record<string, Room> = {};
@@ -32,6 +35,29 @@ const rooms: Record<string, Room> = {};
 const defaultDeck: Record<Role, number> = {
   Werewolf: 0, Seer: 0, Witch: 0, Hunter: 0, Villager: 0, Cupid: 0, 'Little Girl': 0, Thief: 0
 };
+
+function checkWinConditions(players: Player[]): Winner {
+  const alivePlayers = players.filter(p => p.isAlive);
+  if (alivePlayers.length === 0) return null;
+  
+  const lovers = alivePlayers.filter(p => p.isLover);
+  if (lovers.length === 2 && alivePlayers.length === 2) {
+    return 'lovers';
+  }
+
+  const wolves = alivePlayers.filter(p => p.role === 'Werewolf');
+  const villagers = alivePlayers.filter(p => p.role !== 'Werewolf');
+
+  if (wolves.length === 0) {
+    return 'villagers';
+  }
+  
+  if (wolves.length >= villagers.length) {
+    return 'wolves';
+  }
+  
+  return null;
+}
 
 function generateRolesFromDeck(deck: Record<Role, number>): Role[] {
   const roles: Role[] = [];
@@ -67,7 +93,8 @@ async function startServer() {
         players: [],
         status: 'lobby',
         deck: { ...defaultDeck },
-        votesRevealed: false
+        votesRevealed: false,
+        winner: null
       };
       socket.join(roomId);
       console.log(`Room created: ${roomId} by Moderator: ${userId}`);
@@ -145,9 +172,11 @@ async function startServer() {
         player.role = roles[index];
         player.isAlive = true;
         player.voteTarget = undefined;
+        player.isLover = false; // Reset lovers
       });
       room.status = 'night';
       room.votesRevealed = false;
+      room.winner = null;
       
       io.to(roomId).emit('game-started', room);
       io.to(roomId).emit('room-update', room);
@@ -212,7 +241,14 @@ async function startServer() {
       // Eliminate the highest voted player if there's no tie
       if (!tie && eliminatedId) {
         const target = room.players.find(p => p.id === eliminatedId);
-        if (target) target.isAlive = false;
+        if (target) {
+          target.isAlive = false;
+          // Only check win if someone died
+          room.winner = checkWinConditions(room.players);
+          if (room.winner) {
+            io.to(roomId).emit('game-over', { winner: room.winner });
+          }
+        }
       }
 
       io.to(roomId).emit('room-update', room);
@@ -226,6 +262,10 @@ async function startServer() {
       const target = room.players.find(p => p.id === targetId);
       if (target) {
         target.isAlive = isAlive;
+        room.winner = checkWinConditions(room.players);
+        if (room.winner) {
+          io.to(roomId).emit('game-over', { winner: room.winner });
+        }
         io.to(roomId).emit('room-update', room);
       }
     });
@@ -238,10 +278,12 @@ async function startServer() {
 
       room.status = 'lobby';
       room.votesRevealed = false;
+      room.winner = null;
       room.players.forEach(player => {
         delete player.role;
         player.isAlive = true;
         player.voteTarget = undefined;
+        player.isLover = false;
       });
 
       io.to(roomId).emit('game-reset', room);

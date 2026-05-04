@@ -1,8 +1,10 @@
 import { RoomState, Role } from '../types';
-import { useState } from 'react';
-import { Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost, Moon, Vote } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost, Moon, Vote, VolumeX, Volume2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { socket } from '../socket';
+import { useSoundEngine } from '../lib/useSoundEngine';
+import GameOverScreen from './GameOver';
 
 interface Props {
   room: RoomState;
@@ -28,10 +30,31 @@ export default function PlayerDashboard({ room, userId }: Props) {
     return <div className="text-center mt-20 italic text-[#a28dc7]">Waiting for role assignment...</div>;
   }
 
+  const volumeControl = (
+    <button 
+      onClick={toggleMute} 
+      className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-20"
+      aria-label="Toggle Mute"
+    >
+      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+    </button>
+  );
+
+  // Game Over handling
+  if (room.winner) {
+    return (
+      <>
+        {volumeControl}
+        <GameOverScreen winner={room.winner} myRole={me.role} isModerator={false} />
+      </>
+    );
+  }
+
   // Dead View
   if (!me.isAlive) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black relative">
+        {volumeControl}
         <Ghost className="w-24 h-24 text-white/20 mb-6" />
         <h1 className="text-4xl font-serif italic text-white/50 mb-2">Eliminated</h1>
         <p className="text-sm text-white/40 tracking-widest uppercase mb-12">You are dead (No talking!)</p>
@@ -52,7 +75,8 @@ export default function PlayerDashboard({ room, userId }: Props) {
   // Night Mode Blindfold
   if (room.status === 'night') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black relative">
+        {volumeControl}
         <Moon className="w-16 h-16 text-blue-900 mb-6" />
         <h2 className="text-2xl font-serif text-blue-500 mb-2">Night Falls</h2>
         <p className="text-sm text-blue-300/50 tracking-widest uppercase">Close your eyes</p>
@@ -67,7 +91,8 @@ export default function PlayerDashboard({ room, userId }: Props) {
     };
 
     return (
-      <div className="flex flex-col min-h-screen p-4 bg-[#151520]">
+      <div className="flex flex-col min-h-screen p-4 bg-[#151520] relative">
+        {volumeControl}
         <div className="text-center mt-8 mb-8 space-y-2">
           <Vote className="w-8 h-8 text-amber-500 mx-auto" />
           <h2 className="text-xl uppercase tracking-[2px] font-bold text-amber-500">Village Vote</h2>
@@ -121,7 +146,8 @@ export default function PlayerDashboard({ room, userId }: Props) {
   const Icon = details.icon;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 flex-1">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 flex-1 relative">
+      {volumeControl}
       <div className="text-center mb-10 space-y-2 opacity-80">
         <h2 className="text-sm uppercase tracking-[2px] font-bold">Player View</h2>
         <p className="text-xs text-white/50">Day phase is active. Discuss with the village.</p>
