@@ -77,14 +77,37 @@ export default function PlayerDashboard({ room, userId }: Props) {
         <div className="max-w-md w-full mx-auto glass p-6 space-y-3">
            {room.players.map(p => {
              if (!p.isAlive) return null;
+             const votesForP = room.players.filter(voter => voter.voteTarget === p.id).length;
+             const isMe = p.id === userId;
              return (
                <button 
                  key={p.id}
-                 onClick={() => handleVote(p.id)}
-                 className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${me.voteTarget === p.id ? 'bg-amber-900 border-amber-500 text-amber-100' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+                 onClick={() => !room.votesRevealed && !isMe && handleVote(p.id)}
+                 disabled={room.votesRevealed || isMe}
+                 className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${
+                   me.voteTarget === p.id ? 'bg-amber-900 border-amber-500 text-amber-100' : 'bg-white/5 border-white/10'
+                 } ${
+                   !isMe && !room.votesRevealed ? 'hover:bg-white/10' : ''
+                 } ${
+                   room.votesRevealed || isMe ? 'cursor-default opacity-80' : ''
+                 } ${
+                   isMe ? 'bg-black/20 border-white/5' : ''
+                 }`}
                >
-                 <span className="font-bold">{p.name} {p.id === userId && <span className="opacity-50 text-xs ml-1">(You)</span>}</span>
-                 {me.voteTarget === p.id && <span className="text-[10px] uppercase font-bold text-amber-400">Selected</span>}
+                 <span className="font-bold">
+                   {p.name} 
+                   {isMe && <span className="opacity-50 text-xs ml-1">(You)</span>}
+                 </span>
+                 {room.votesRevealed ? (
+                   votesForP > 0 ? (
+                     <span className="text-xs uppercase font-bold text-red-400 flex items-center gap-1">
+                       {votesForP} Vote{votesForP > 1 ? 's' : ''}
+                       {!p.isAlive && <span className="ml-2 text-[10px] bg-red-900/50 px-2 py-0.5 rounded text-red-200">Killed</span>}
+                     </span>
+                   ) : null
+                 ) : (
+                   me.voteTarget === p.id && <span className="text-[10px] uppercase font-bold text-amber-400">Selected</span>
+                 )}
                </button>
              );
            })}

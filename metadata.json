@@ -1,6 +1,6 @@
 {
   "name": "Werewolves of Miller's Hollow",
   "description": "A real-time multiplayer Web app for playing Werewolves of Miller's Hollow without cards.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["camera"],
   "majorCapabilities": []
 }

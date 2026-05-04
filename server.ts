@@ -170,7 +170,8 @@ async function startServer() {
     // Cast Vote
     socket.on('cast-vote', ({ roomId, userId, targetId }) => {
       const room = rooms[roomId];
-      if (!room || room.status !== 'voting') return;
+      if (!room || room.status !== 'voting' || room.votesRevealed) return;
+      if (userId === targetId) return; // Prevent voting for self
       
       const voter = room.players.find(p => p.id === userId);
       if (!voter || !voter.isAlive) return;

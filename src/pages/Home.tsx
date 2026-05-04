@@ -55,6 +55,12 @@ export default function Home() {
     }
   };
 
+  const handleScanError = (err: unknown) => {
+    console.error(err);
+    alert('Camera permission denied or camera not found. Please type the room code manually.');
+    setShowScanner(false);
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4">
       <div className="max-w-md w-full text-center space-y-10 glass p-8 md:p-12">
@@ -84,7 +90,7 @@ export default function Home() {
         {showScanner ? (
           <div className="space-y-4 bg-black/40 p-4 rounded-lg">
             <div className="rounded overflow-hidden">
-              <Scanner onScan={handleScan} />
+              <Scanner onScan={handleScan} onError={handleScanError} />
             </div>
             <button 
               onClick={() => setShowScanner(false)}

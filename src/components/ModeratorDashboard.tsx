@@ -47,7 +47,16 @@ export default function ModeratorDashboard({ room, userId }: Props) {
 
   return (
     <>
-      <div className={`max-w-5xl mx-auto p-4 md:p-8 flex flex-col min-h-screen transition-colors duration-1000 ${room.status === 'day' || room.status === 'voting' ? 'bg-[#151520]' : ''}`}>
+      {/* Background Phase Overlay */}
+      <div 
+        className={`fixed inset-0 pointer-events-none transition-colors duration-1000 z-0 ${
+          room.status === 'night' ? 'bg-[#050520]/90' : 
+          room.status === 'day' ? 'bg-amber-500/5' : 
+          room.status === 'voting' ? 'bg-amber-600/10' : 
+          'bg-transparent'
+        }`}
+      />
+      <div className="max-w-5xl mx-auto p-4 md:p-8 flex flex-col min-h-screen relative z-10">
         <header className="h-[80px] flex items-center justify-between border-b border-white/5 mb-8">
           <div>
             <h1 className="text-xl font-bold tracking-[2px] uppercase">MILLER'S <span className="text-[#ff4d4d]">HOLLOW</span></h1>
@@ -99,6 +108,15 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                     style={{ background: '#ff4d4d', borderColor: '#9b1c1c' }}
                   >
                     Reveal Results & Kill
+                  </button>
+                )}
+                {room.status === 'voting' && room.votesRevealed && (
+                  <button 
+                    onClick={() => changePhase('night')}
+                    className="btn-primary flex items-center justify-center py-3 gap-2"
+                    style={{ background: '#3c2f5a', borderColor: '#5a4a8a' }}
+                  >
+                    <Moon className="w-4 h-4" /> Close Vote & Sleep
                   </button>
                 )}
               </div>
