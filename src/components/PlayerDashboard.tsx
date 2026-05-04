@@ -1,7 +1,8 @@
 import { RoomState, Role } from '../types';
 import { useState } from 'react';
-import { Shield, Eye, Droplets, Crosshair, Pickaxe } from 'lucide-react';
+import { Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost, Moon, Vote } from 'lucide-react';
 import { motion } from 'motion/react';
+import { socket } from '../socket';
 
 interface Props {
   room: RoomState;
@@ -9,41 +10,14 @@ interface Props {
 }
 
 const roleDetails: Record<Role, { title: string, obj: string, icon: any, color: string, bg: string }> = {
-  'Werewolf': {
-    title: 'Werewolf',
-    obj: 'Eliminate villagers during the night. Blend in during the day to avoid being voted out. Survive until only wolves remain.',
-    icon: Shield,
-    color: 'text-red-500',
-    bg: 'from-red-950 to-[#0d0a14]'
-  },
-  'Seer': {
-    title: 'Seer',
-    obj: 'Awakens each night to divine the true identity of one player. Use this knowledge to guide the village subtly without getting killed.',
-    icon: Eye,
-    color: 'text-blue-500',
-    bg: 'from-blue-950 to-[#0d0a14]'
-  },
-  'Witch': {
-    title: 'Witch',
-    obj: 'Possesses two potions: one to save a victim of the wolves, and one to eliminate a player. Each can be used once. Choose wisely.',
-    icon: Droplets,
-    color: 'text-purple-500',
-    bg: 'from-purple-950 to-[#0d0a14]'
-  },
-  'Hunter': {
-    title: 'Hunter',
-    obj: 'If killed (by wolves or vote), you immediately shoot one player of your choice, taking them down with you. Take down a wolf.',
-    icon: Crosshair,
-    color: 'text-amber-500',
-    bg: 'from-amber-950 to-[#0d0a14]'
-  },
-  'Villager': {
-    title: 'Villager',
-    obj: 'No special abilities. Use intuition and logic to vote out the werewolves during the day. Do not trust easily.',
-    icon: Pickaxe,
-    color: 'text-stone-400',
-    bg: 'from-stone-900 to-[#0d0a14]'
-  }
+  'Werewolf': { title: 'Werewolf', obj: 'Eliminate villagers during the night.', icon: Shield, color: 'text-red-500', bg: 'from-red-950 to-[#0d0a14]' },
+  'Seer': { title: 'Seer', obj: 'Awakens each night to divine the true identity of one player.', icon: Eye, color: 'text-blue-500', bg: 'from-blue-950 to-[#0d0a14]' },
+  'Witch': { title: 'Witch', obj: '1 Life pot, 1 Death pot. Use them wisely.', icon: Droplets, color: 'text-purple-500', bg: 'from-purple-950 to-[#0d0a14]' },
+  'Hunter': { title: 'Hunter', obj: 'Fires when killed, taking down any player with them.', icon: Crosshair, color: 'text-amber-500', bg: 'from-amber-950 to-[#0d0a14]' },
+  'Villager': { title: 'Villager', obj: 'Survive the night. Vote out the werewolves during the day.', icon: Pickaxe, color: 'text-stone-400', bg: 'from-stone-900 to-[#0d0a14]' },
+  'Cupid': { title: 'Cupid', obj: 'Choose two players to be lovers at the start of the game.', icon: Heart, color: 'text-pink-500', bg: 'from-pink-950 to-[#0d0a14]' },
+  'Little Girl': { title: 'Little Girl', obj: 'Can peek during the night but risks being caught by wolves.', icon: Eye, color: 'text-sky-500', bg: 'from-sky-950 to-[#0d0a14]' },
+  'Thief': { title: 'Thief', obj: 'Choose between two unused cards at the start.', icon: Key, color: 'text-orange-500', bg: 'from-orange-950 to-[#0d0a14]' },
 };
 
 export default function PlayerDashboard({ room, userId }: Props) {
@@ -54,6 +28,72 @@ export default function PlayerDashboard({ room, userId }: Props) {
     return <div className="text-center mt-20 italic text-[#a28dc7]">Waiting for role assignment...</div>;
   }
 
+  // Dead View
+  if (!me.isAlive) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
+        <Ghost className="w-24 h-24 text-white/20 mb-6" />
+        <h1 className="text-4xl font-serif italic text-white/50 mb-2">Eliminated</h1>
+        <p className="text-sm text-white/40 tracking-widest uppercase mb-12">You are dead (No talking!)</p>
+        <div className="opacity-40 pointer-events-none filter grayscale">
+          {/* Minified version of their card */}
+          <div className="w-32 h-48 border border-white/20 rounded-xl flex items-center justify-center flex-col gap-2">
+             {(() => {
+                const Icon = roleDetails[me.role].icon;
+                return <Icon className="w-8 h-8" />;
+             })()}
+             <span className="text-xs uppercase font-bold">{me.role}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Night Mode Blindfold
+  if (room.status === 'night') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black">
+        <Moon className="w-16 h-16 text-blue-900 mb-6" />
+        <h2 className="text-2xl font-serif text-blue-500 mb-2">Night Falls</h2>
+        <p className="text-sm text-blue-300/50 tracking-widest uppercase">Close your eyes</p>
+      </div>
+    );
+  }
+
+  // Voting Mode
+  if (room.status === 'voting') {
+    const handleVote = (targetId: string) => {
+      socket.emit('cast-vote', { roomId: room.id, userId, targetId });
+    };
+
+    return (
+      <div className="flex flex-col min-h-screen p-4 bg-[#151520]">
+        <div className="text-center mt-8 mb-8 space-y-2">
+          <Vote className="w-8 h-8 text-amber-500 mx-auto" />
+          <h2 className="text-xl uppercase tracking-[2px] font-bold text-amber-500">Village Vote</h2>
+          <p className="text-xs text-white/50">Who do you accuse? Choose carefully.</p>
+        </div>
+
+        <div className="max-w-md w-full mx-auto glass p-6 space-y-3">
+           {room.players.map(p => {
+             if (!p.isAlive) return null;
+             return (
+               <button 
+                 key={p.id}
+                 onClick={() => handleVote(p.id)}
+                 className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${me.voteTarget === p.id ? 'bg-amber-900 border-amber-500 text-amber-100' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+               >
+                 <span className="font-bold">{p.name} {p.id === userId && <span className="opacity-50 text-xs ml-1">(You)</span>}</span>
+                 {me.voteTarget === p.id && <span className="text-[10px] uppercase font-bold text-amber-400">Selected</span>}
+               </button>
+             );
+           })}
+        </div>
+      </div>
+    );
+  }
+
+  // Day Mode (Show Card)
   const details = roleDetails[me.role];
   const Icon = details.icon;
 
@@ -61,7 +101,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
     <div className="flex flex-col items-center justify-center min-h-screen p-4 flex-1">
       <div className="text-center mb-10 space-y-2 opacity-80">
         <h2 className="text-sm uppercase tracking-[2px] font-bold">Player View</h2>
-        <p className="text-xs text-white/50">Tap the card to privately view your role</p>
+        <p className="text-xs text-white/50">Day phase is active. Discuss with the village.</p>
       </div>
 
       <div 

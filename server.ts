@@ -5,7 +5,7 @@ import { Server, Socket } from 'socket.io';
 import path from 'path';
 
 // Game Types
-type Role = 'Werewolf' | 'Seer' | 'Witch' | 'Hunter' | 'Villager';
+type Role = 'Werewolf' | 'Seer' | 'Witch' | 'Hunter' | 'Villager' | 'Cupid' | 'Little Girl' | 'Thief';
 
 interface Player {
   id: string; // User ID (from sessionStorage)
@@ -13,33 +13,33 @@ interface Player {
   name: string;
   role?: Role;
   isAlive: boolean;
+  voteTarget?: string;
 }
+
+type GamePhase = 'lobby' | 'night' | 'day' | 'voting';
 
 interface Room {
   id: string;
   moderatorId: string;
   players: Player[];
-  status: 'lobby' | 'playing';
+  status: GamePhase;
+  deck: Record<Role, number>;
+  votesRevealed: boolean;
 }
 
 const rooms: Record<string, Room> = {};
 
-function distributeRoles(playerCount: number): Role[] {
+const defaultDeck: Record<Role, number> = {
+  Werewolf: 0, Seer: 0, Witch: 0, Hunter: 0, Villager: 0, Cupid: 0, 'Little Girl': 0, Thief: 0
+};
+
+function generateRolesFromDeck(deck: Record<Role, number>): Role[] {
   const roles: Role[] = [];
-  
-  if (playerCount <= 4) {
-    roles.push('Werewolf', 'Seer');
-    while (roles.length < playerCount) roles.push('Villager');
-  } else if (playerCount <= 6) {
-    roles.push('Werewolf', 'Seer', 'Witch');
-    while (roles.length < playerCount) roles.push('Villager');
-  } else {
-    // 7 or more
-    roles.push('Werewolf', 'Werewolf', 'Seer', 'Witch', 'Hunter');
-    while (roles.length < playerCount) roles.push('Villager');
+  for (const [role, count] of Object.entries(deck)) {
+    for (let i = 0; i < (count as number); i++) {
+      roles.push(role as Role);
+    }
   }
-  
-  // Shuffle roles
   return roles.sort(() => Math.random() - 0.5);
 }
 
@@ -65,7 +65,9 @@ async function startServer() {
         id: roomId,
         moderatorId: userId,
         players: [],
-        status: 'lobby'
+        status: 'lobby',
+        deck: { ...defaultDeck },
+        votesRevealed: false
       };
       socket.join(roomId);
       console.log(`Room created: ${roomId} by Moderator: ${userId}`);
@@ -109,20 +111,111 @@ async function startServer() {
       io.to(roomId).emit('room-update', room);
     });
 
-    // Start Game / Distribute Roles
+    // Update Deck
+    socket.on('update-deck', ({ roomId, userId, deck }) => {
+      const room = rooms[roomId];
+      if (!room || userId !== room.moderatorId) return;
+      
+      room.deck = deck;
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Start Game
     socket.on('start-game', ({ roomId, userId }) => {
       const room = rooms[roomId];
       if (!room) return;
       if (userId !== room.moderatorId) return; // Only moderator
 
-      const roles = distributeRoles(room.players.length);
+      const totalCards = Object.values(room.deck).reduce((acc, val) => acc + val, 0);
+      if (totalCards !== room.players.length) return; // Deck size must match players
+
+      const roles = generateRolesFromDeck(room.deck);
       room.players.forEach((player, index) => {
         player.role = roles[index];
+        player.isAlive = true;
+        player.voteTarget = undefined;
       });
-      room.status = 'playing';
+      room.status = 'night';
+      room.votesRevealed = false;
       
       io.to(roomId).emit('game-started', room);
       io.to(roomId).emit('room-update', room);
+    });
+
+    // Change Phase
+    socket.on('change-phase', ({ roomId, userId, phase }) => {
+      const room = rooms[roomId];
+      if (!room || userId !== room.moderatorId) return;
+
+      room.status = phase;
+      if (phase !== 'voting') {
+        room.votesRevealed = false;
+        room.players.forEach(p => p.voteTarget = undefined);
+      }
+      
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Cast Vote
+    socket.on('cast-vote', ({ roomId, userId, targetId }) => {
+      const room = rooms[roomId];
+      if (!room || room.status !== 'voting') return;
+      
+      const voter = room.players.find(p => p.id === userId);
+      if (!voter || !voter.isAlive) return;
+
+      voter.voteTarget = targetId;
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Reveal Votes
+    socket.on('reveal-votes', ({ roomId, userId }) => {
+      const room = rooms[roomId];
+      if (!room || userId !== room.moderatorId) return;
+      
+      room.votesRevealed = true;
+      
+      // Calculate eliminations
+      const voteCounts: Record<string, number> = {};
+      room.players.forEach(p => {
+        if (p.isAlive && p.voteTarget) {
+          voteCounts[p.voteTarget] = (voteCounts[p.voteTarget] || 0) + 1;
+        }
+      });
+      
+      let maxVotes = 0;
+      let eliminatedId: string | null = null;
+      let tie = false;
+
+      Object.entries(voteCounts).forEach(([tid, count]) => {
+        if (count > maxVotes) {
+          maxVotes = count;
+          eliminatedId = tid;
+          tie = false;
+        } else if (count === maxVotes) {
+          tie = true;
+        }
+      });
+
+      // Eliminate the highest voted player if there's no tie
+      if (!tie && eliminatedId) {
+        const target = room.players.find(p => p.id === eliminatedId);
+        if (target) target.isAlive = false;
+      }
+
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Manual Eliminate/Revive
+    socket.on('set-alive-status', ({ roomId, userId, targetId, isAlive }) => {
+      const room = rooms[roomId];
+      if (!room || userId !== room.moderatorId) return;
+      
+      const target = room.players.find(p => p.id === targetId);
+      if (target) {
+        target.isAlive = isAlive;
+        io.to(roomId).emit('room-update', room);
+      }
     });
 
     // Reset Game
@@ -132,9 +225,11 @@ async function startServer() {
       if (userId !== room.moderatorId) return;
 
       room.status = 'lobby';
+      room.votesRevealed = false;
       room.players.forEach(player => {
         delete player.role;
         player.isAlive = true;
+        player.voteTarget = undefined;
       });
 
       io.to(roomId).emit('game-reset', room);
