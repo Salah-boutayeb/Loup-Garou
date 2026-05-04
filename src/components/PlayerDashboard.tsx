@@ -24,6 +24,26 @@ const roleDetails: Record<Role, { title: string, obj: string, icon: any, color: 
 
 export default function PlayerDashboard({ room, userId }: Props) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    return localStorage.getItem('werewolf_muted') === 'true';
+  });
+
+  const { playSound } = useSoundEngine(isMuted);
+
+  const toggleMute = () => {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    localStorage.setItem('werewolf_muted', String(newMuted));
+  };
+  
+  // Watch for phase changes to trigger sounds
+  useEffect(() => {
+    if (room.status === 'night') playSound('night');
+    if (room.status === 'voting') playSound('gavel');
+    if (room.winner === 'wolves') playSound('defeat'); 
+    if (room.winner === 'villagers') playSound('victory');
+  }, [room.status, room.winner]);
+
   const me = room.players.find(p => p.id === userId);
 
   if (!me || !me.role) {
