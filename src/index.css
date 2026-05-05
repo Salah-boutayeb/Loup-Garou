@@ -16,6 +16,24 @@
     background-size: 24px 24px;
   }
   
+  .bg-forest-night {
+    background-image: 
+      linear-gradient(to bottom, rgba(13, 10, 20, 0.8), rgba(13, 10, 20, 0.95)),
+      url('https://images.unsplash.com/photo-1514373941175-5ca31cb0f2fd?q=80&w=2000&auto=format&fit=crop&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+
+  .bg-village-day {
+    background-image: 
+      linear-gradient(to bottom, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95)),
+      url('https://images.unsplash.com/photo-1503754163129-a02a0c1bf6ce?q=80&w=2000&auto=format&fit=crop&q=80');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+  }
+  
   .glass {
     background-color: rgba(18, 18, 24, 0.6);
     backdrop-filter: blur(12px);

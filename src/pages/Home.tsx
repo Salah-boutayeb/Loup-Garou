@@ -62,7 +62,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-forest-night">
       <div className="max-w-md w-full text-center space-y-10 glass p-8 md:p-12">
         <div className="space-y-4">
           <Moon className="w-16 h-16 mx-auto text-[#ff4d4d]" />

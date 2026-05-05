@@ -225,8 +225,8 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                   </li>
                   <li className="flex flex-col gap-1 bg-white/5 p-2 rounded">
                     <span className="text-purple-400 font-bold">Witch:</span>
-                    <span className="text-xs">{room.nightData?.witchHealUsed ? 'Heal Potion Empty' : (room.nightData?.witchHealTarget ? 'Used Heal' : 'Heal Pending/Kept')}</span>
-                    <span className="text-xs">{room.nightData?.witchKillUsed ? 'Kill Potion Empty' : (room.nightData?.witchKillTarget ? 'Used Kill' : 'Kill Pending/Kept')}</span>
+                    <span className="text-xs">{room.nightData?.witchHealTarget ? 'Used Heal' : (room.nightData?.witchHealUsed ? 'Heal Potion Empty' : 'Heal Pending/Kept')}</span>
+                    <span className="text-xs">{room.nightData?.witchKillTarget ? 'Used Kill' : (room.nightData?.witchKillUsed ? 'Kill Potion Empty' : 'Kill Pending/Kept')}</span>
                   </li>
                 </ul>
                 <div className="mt-4 text-xs text-amber-500/80 italic">

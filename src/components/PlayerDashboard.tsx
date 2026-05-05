@@ -46,6 +46,13 @@ export default function PlayerDashboard({ room, userId }: Props) {
     if (room.winner === 'villagers') playSound('victory');
   }, [room.status, room.winner]);
 
+  // Handle auto-reset of card flip
+  useEffect(() => {
+    if (room.status === 'day' && room.firstNight) {
+      setIsFlipped(false);
+    }
+  }, [room.status, room.firstNight]);
+
   const me = room.players.find(p => p.id === userId);
 
   if (!me || !me.role) {
@@ -232,7 +239,9 @@ export default function PlayerDashboard({ room, userId }: Props) {
             <div className="space-y-4">
               <div className="glass p-4 rounded border-purple-500/20">
                 <h3 className="text-xs uppercase text-green-400 font-bold mb-2">Healing Potion</h3>
-                {room.nightData.witchHealUsed ? (
+                {room.nightData.witchHealTarget ? (
+                  <p className="text-green-400 text-sm">Healed {room.players.find(p => p.id === room.nightData.witchHealTarget)?.name}</p>
+                ) : room.nightData.witchHealUsed ? (
                   <p className="text-white/40 text-sm">Empty.</p>
                 ) : (
                   <div>
@@ -255,10 +264,10 @@ export default function PlayerDashboard({ room, userId }: Props) {
 
               <div className="glass p-4 rounded border-purple-500/20">
                 <h3 className="text-xs uppercase text-red-400 font-bold mb-2">Poison Potion</h3>
-                {room.nightData.witchKillUsed ? (
-                  <p className="text-white/40 text-sm">Empty.</p>
-                ) : room.nightData.witchKillTarget ? (
+                {room.nightData.witchKillTarget ? (
                   <p className="text-red-400 text-sm">Targeted {room.players.find(p => p.id === room.nightData.witchKillTarget)?.name}</p>
+                ) : room.nightData.witchKillUsed ? (
+                  <p className="text-white/40 text-sm">Empty.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {alivePlayers.filter(p => p.id !== userId).map(p => (
@@ -475,51 +484,82 @@ export default function PlayerDashboard({ room, userId }: Props) {
 
       <div 
         className="card-reveal relative w-[240px] h-[340px] perspective-1000 cursor-pointer"
-        onClick={() => setIsFlipped(!isFlipped)}
+        onClick={() => {
+          if (!isFlipped) playSound('voting'); // Subtle click sound
+          setIsFlipped(!isFlipped);
+        }}
       >
         <motion.div
           className="w-full h-full relative preserve-3d"
           animate={{ rotateY: isFlipped ? 180 : 0 }}
-          transition={{ duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
+          transition={{ duration: 0.8, type: "spring", stiffness: 150, damping: 15 }}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Card Back (Hidden) */}
-          <div className="absolute inset-0 backface-hidden glass flex flex-col items-center justify-center">
-            <div className="w-16 h-16 border border-white/20 rounded-full flex items-center justify-center mb-4 text-[#ff4d4d]">
-              <span className="font-serif text-2xl font-bold italic">M</span>
+          <div className="absolute inset-0 backface-hidden glass flex flex-col items-center justify-center group overflow-hidden border border-white/10 hover:border-white/30 transition-colors">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="w-20 h-20 border-2 border-white/20 rounded-full flex items-center justify-center mb-6 text-[#ff4d4d] shadow-[0_0_30px_rgba(255,77,77,0.2)]">
+              <span className="font-serif text-4xl font-bold italic">M</span>
             </div>
-            <div className="text-white/50 text-xs tracking-[2px] uppercase font-bold">Secret Role</div>
+            <div className="text-white/70 text-xs tracking-[4px] uppercase font-bold mb-4">Secret Role</div>
+            <motion.div 
+              animate={{ y: [0, 5, 0] }} 
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-[10px] text-white uppercase tracking-widest"
+            >
+              Tap to Reveal
+            </motion.div>
           </div>
 
           {/* Card Front (Revealed) */}
           <div 
-            className="absolute inset-0 backface-hidden rounded-2xl border-2 border-[#3c2f5a] shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden bg-[#1a1a24] flex flex-col items-center text-center p-5"
-            style={{ transform: 'rotateY(180deg)' }}
+            className="absolute inset-0 backface-hidden rounded-2xl border-2 shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden bg-[#1a1a24] flex flex-col items-center text-center p-5"
+            style={{ 
+              transform: 'rotateY(180deg)',
+              borderColor: details.bg.includes('red') ? '#ff4d4d80' : details.bg.includes('blue') ? '#3b82f680' : details.bg.includes('purple') ? '#a855f780' : details.bg.includes('amber') ? '#f59e0b80' : details.bg.includes('sky') ? '#0ea5e980' : '#ffffff40'
+            }}
           >
-            <div className="absolute top-3 right-3 opacity-30 text-[10px] font-bold">#WW</div>
+            <div className="absolute inset-0 opacity-20 bg-gradient-to-b" style={{ backgroundImage: `linear-gradient(to bottom, transparent, var(--tw-gradient-to))` }}></div>
+            <div className="absolute top-3 right-3 opacity-30 text-[10px] font-bold z-10">#WW</div>
             
-            <div className={`mt-2 mb-4 ${details.color}`}>
-              <Icon strokeWidth={1} className="w-16 h-16" />
+            <div className={`mt-4 mb-4 ${details.color} z-10 relative`}>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: isFlipped ? 1 : 0 }}
+                transition={{ delay: 0.3, type: "spring" }}
+              >
+                <Icon strokeWidth={1} className="w-20 h-20 drop-shadow-[0_0_15px_currentColor]" />
+              </motion.div>
             </div>
             
-            <h3 className="text-2xl mb-2 font-serif italic text-white">
+            <motion.h3 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: isFlipped ? 1 : 0, y: isFlipped ? 0 : 10 }}
+              transition={{ delay: 0.4 }}
+              className="text-3xl mb-2 font-serif italic text-white z-10 relative"
+            >
               {details.title}
-            </h3>
+            </motion.h3>
 
             {me.isLover && (
-              <div className="flex items-center gap-1 text-pink-500 font-bold text-xs uppercase mb-2">
+              <motion.div 
+                initial={{ opacity: 0 }} animate={{ opacity: isFlipped ? 1 : 0 }} transition={{ delay: 0.5 }}
+                className="flex items-center gap-1 text-pink-500 font-bold text-xs uppercase mb-2 z-10 relative bg-pink-950/50 px-2 py-1 rounded"
+              >
                 <Heart className="w-3 h-3" /> Lover
-              </div>
+              </motion.div>
             )}
             
-            <p className="text-[11px] opacity-60 px-2 leading-relaxed">
+            <motion.p 
+              initial={{ opacity: 0 }} animate={{ opacity: isFlipped ? 1 : 0 }} transition={{ delay: 0.6 }}
+              className="text-xs opacity-80 px-2 leading-relaxed z-10 relative"
+            >
               {details.obj}
-            </p>
+            </motion.p>
 
-            <div className="mt-8">
-              <div className={`text-[9px] uppercase tracking-[2px] ${details.color} font-bold`}>Reveal Held</div>
-              <div className="w-[140px] h-1 bg-white/10 rounded-sm mt-2 overflow-hidden mx-auto">
-                <div className={`w-full h-full ${details.bg.includes('red') ? 'bg-[#ff4d4d]' : details.bg.includes('blue') ? 'bg-[#a78bfa]' : details.bg.includes('purple') ? 'bg-[#facc15]' : details.bg.includes('amber') ? 'bg-[#10b981]' : 'bg-white'}`}></div>
+            <div className="mt-auto mb-2 z-10 relative w-full">
+              <div className="w-[140px] h-1 bg-white/10 rounded-sm overflow-hidden mx-auto">
+                <div className={`w-full h-full ${details.bg.includes('red') ? 'bg-[#ff4d4d]' : details.bg.includes('blue') ? 'bg-[#3b82f6]' : details.bg.includes('purple') ? 'bg-[#a855f7]' : details.bg.includes('amber') ? 'bg-[#f59e0b]' : details.bg.includes('sky') ? 'bg-[#0ea5e9]' : 'bg-white'}`}></div>
               </div>
             </div>
           </div>

@@ -10,7 +10,7 @@ import Room from './pages/Room';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-[#050508] text-[#e2e2e7] font-sans overflow-x-hidden bg-grid">
+      <div className="text-[#e2e2e7] font-sans overflow-x-hidden">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/room/:roomId" element={<Room />} />

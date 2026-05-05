@@ -64,7 +64,7 @@ export default function Room() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-[#ff4d4d] space-y-4 px-4 text-center">
+      <div className="flex flex-col items-center justify-center min-h-screen text-[#ff4d4d] space-y-4 px-4 text-center bg-forest-night">
         <h1 className="text-4xl">Oops!</h1>
         <p className="text-xl">{error}</p>
         <button 
@@ -79,17 +79,19 @@ export default function Room() {
 
   if (!room) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-forest-night">
         <div className="text-white/50 animate-pulse text-xl tracking-widest uppercase">Finding room...</div>
       </div>
     );
   }
 
   const isModerator = room.moderatorId === userId;
+  const isDay = room.status === 'day' || room.status === 'voting';
+  const bgClass = isDay ? 'bg-village-day' : 'bg-forest-night';
 
   if (!hasJoined) {
     return (
-      <div className="flex items-center justify-center min-h-screen px-4">
+      <div className={`flex items-center justify-center min-h-screen px-4 ${bgClass}`}>
         <form onSubmit={handleJoin} className="glass p-8 max-w-sm w-full space-y-6">
           <h2 className="text-2xl font-bold tracking-widest uppercase text-white text-center">Join <span className="text-[#ff4d4d]">Village</span></h2>
           <div>
@@ -116,7 +118,7 @@ export default function Room() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen ${bgClass}`}>
       {room.status === 'lobby' ? (
         <Lobby room={room} isModerator={isModerator} userId={userId} />
       ) : (

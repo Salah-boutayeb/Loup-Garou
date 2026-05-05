@@ -219,7 +219,7 @@ async function startServer() {
         player.voteTarget = undefined;
         player.isLover = false; // Reset lovers
       });
-      room.status = 'night';
+      room.status = 'day';
       room.firstNight = true;
       room.hunterRevengePlayerId = null;
       room.thiefSwapped = false;
