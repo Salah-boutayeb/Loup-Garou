@@ -92,14 +92,155 @@ export default function PlayerDashboard({ room, userId }: Props) {
     );
   }
 
-  // Night Mode Blindfold
+  // Night Mode
   if (room.status === 'night') {
+    const handleNightAction = (action: string, targetId: string) => {
+      socket.emit('night-action', { roomId: room.id, userId, action, targetId });
+    };
+
+    const alivePlayers = room.players.filter(p => p.isAlive);
+    const nonWolves = alivePlayers.filter(p => p.role !== 'Werewolf');
+    const myWolfVote = room.nightData.wolfVotes[userId];
+
+    const getWolfTarget = () => {
+      const votes = Object.values(room.nightData.wolfVotes);
+      if (votes.length === 0) return null;
+      const counts: Record<string, number> = {};
+      let max = 0;
+      let target = null;
+      votes.forEach(v => {
+        counts[v] = (counts[v] || 0) + 1;
+        if (counts[v] > max) { max = counts[v]; target = v; }
+      });
+      return target;
+    };
+    
+    const wolfTargetId = getWolfTarget();
+    const wolfTarget = room.players.find(p => p.id === wolfTargetId);
+
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black relative">
         {volumeControl}
-        <Moon className="w-16 h-16 text-blue-900 mb-6" />
-        <h2 className="text-2xl font-serif text-blue-500 mb-2">Night Falls</h2>
-        <p className="text-sm text-blue-300/50 tracking-widest uppercase">Close your eyes</p>
+        
+        {me.role === 'Werewolf' ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="text-center">
+              <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-red-500 mb-2">Wolf Pack Awakens</h2>
+              <p className="text-sm text-red-300/50 tracking-widest uppercase">Select your prey</p>
+            </div>
+            <div className="space-y-2">
+              {nonWolves.map(p => {
+                const wolfVoters = Object.entries(room.nightData.wolfVotes)
+                  .filter(([_, tId]) => tId === p.id)
+                  .map(([wId, _]) => room.players.find(wp => wp.id === wId)?.name);
+                
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => handleNightAction('wolf-vote', p.id)}
+                    className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${
+                      myWolfVote === p.id ? 'bg-red-900 border-red-500' : 'bg-red-950/20 border-red-900/50 hover:bg-red-900/40'
+                    }`}
+                  >
+                    <span className="font-bold text-red-100">{p.name}</span>
+                    {wolfVoters.length > 0 && (
+                      <span className="text-xs text-red-400 font-bold">{wolfVoters.length} Vote{wolfVoters.length > 1 ? 's' : ''} ({wolfVoters.join(', ')})</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : me.role === 'Seer' ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="text-center">
+              <Eye className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-blue-500 mb-2">Seer's Vision</h2>
+              <p className="text-sm text-blue-300/50 tracking-widest uppercase">Investigate one soul</p>
+            </div>
+            {room.nightData.seerTarget ? (
+              <div className="glass p-8 text-center rounded-xl border-blue-500/30">
+                <p className="text-blue-200 mb-4">You investigated {room.players.find(p => p.id === room.nightData.seerTarget)?.name}:</p>
+                <div className="text-3xl font-serif text-blue-500 italic">
+                  {room.players.find(p => p.id === room.nightData.seerTarget)?.role}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {alivePlayers.filter(p => p.id !== userId).map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleNightAction('seer-investigate', p.id)}
+                    className="w-full py-4 px-4 flex justify-between items-center rounded border bg-blue-950/20 border-blue-900/50 hover:bg-blue-900/40 text-blue-100"
+                  >
+                    <span className="font-bold">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : me.role === 'Witch' ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="text-center">
+              <Droplets className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-purple-500 mb-2">Witch's Brew</h2>
+              <p className="text-sm text-purple-300/50 tracking-widest uppercase">Life or Death</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="glass p-4 rounded border-purple-500/20">
+                <h3 className="text-xs uppercase text-green-400 font-bold mb-2">Healing Potion</h3>
+                {room.nightData.witchHealUsed ? (
+                  <p className="text-white/40 text-sm">Empty.</p>
+                ) : (
+                  <div>
+                    {wolfTarget ? (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-purple-200">{wolfTarget.name} was attacked.</span>
+                        <button 
+                          onClick={() => handleNightAction('witch-heal', wolfTarget.id)}
+                          className="px-3 py-1 bg-green-900 border border-green-500 text-green-100 rounded text-xs"
+                        >
+                          Heal
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-white/40 text-sm italic">Waiting for wolves...</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="glass p-4 rounded border-purple-500/20">
+                <h3 className="text-xs uppercase text-red-400 font-bold mb-2">Poison Potion</h3>
+                {room.nightData.witchKillUsed ? (
+                  <p className="text-white/40 text-sm">Empty.</p>
+                ) : room.nightData.witchKillTarget ? (
+                  <p className="text-red-400 text-sm">Targeted {room.players.find(p => p.id === room.nightData.witchKillTarget)?.name}</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {alivePlayers.filter(p => p.id !== userId).map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => handleNightAction('witch-kill', p.id)}
+                        className="w-full py-2 px-3 flex justify-between items-center rounded border bg-red-950/20 border-red-900/50 hover:bg-red-900/40 text-red-100 text-sm"
+                      >
+                        <span>Poison {p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center animate-pulse">
+            <Moon className="w-16 h-16 text-blue-900 mx-auto mb-6 opacity-50" />
+            <h2 className="text-2xl font-serif text-blue-500/50 mb-2">Night Falls</h2>
+            <p className="text-sm text-blue-300/30 tracking-widest uppercase">Close your eyes</p>
+          </div>
+        )}
       </div>
     );
   }

@@ -13,6 +13,16 @@ export interface Player {
 export type GamePhase = 'lobby' | 'night' | 'day' | 'voting';
 export type Winner = 'wolves' | 'villagers' | 'lovers' | null;
 
+export interface NightData {
+  wolfVotes: Record<string, string>;
+  seerTarget?: string;
+  witchHealTarget?: string;
+  witchKillTarget?: string;
+  witchHealUsed: boolean;
+  witchKillUsed: boolean;
+  cupidLovers: string[];
+}
+
 export interface RoomState {
   id: string;
   moderatorId: string;
@@ -21,4 +31,5 @@ export interface RoomState {
   deck: Record<Role, number>;
   votesRevealed: boolean;
   winner?: Winner;
+  nightData: NightData;
 }

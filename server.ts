@@ -20,6 +20,16 @@ interface Player {
 type GamePhase = 'lobby' | 'night' | 'day' | 'voting';
 type Winner = 'wolves' | 'villagers' | 'lovers' | null;
 
+interface NightData {
+  wolfVotes: Record<string, string>;
+  seerTarget?: string;
+  witchHealTarget?: string;
+  witchKillTarget?: string;
+  witchHealUsed: boolean;
+  witchKillUsed: boolean;
+  cupidLovers: string[];
+}
+
 interface Room {
   id: string;
   moderatorId: string;
@@ -28,6 +38,7 @@ interface Room {
   deck: Record<Role, number>;
   votesRevealed: boolean;
   winner: Winner;
+  nightData: NightData;
 }
 
 const rooms: Record<string, Room> = {};
@@ -94,7 +105,13 @@ async function startServer() {
         status: 'lobby',
         deck: { ...defaultDeck },
         votesRevealed: false,
-        winner: null
+        winner: null,
+        nightData: {
+          wolfVotes: {},
+          witchHealUsed: false,
+          witchKillUsed: false,
+          cupidLovers: []
+        }
       };
       socket.join(roomId);
       console.log(`Room created: ${roomId} by Moderator: ${userId}`);
@@ -177,6 +194,13 @@ async function startServer() {
       room.status = 'night';
       room.votesRevealed = false;
       room.winner = null;
+      room.nightData = {
+        ...room.nightData,
+        wolfVotes: {},
+        seerTarget: undefined,
+        witchHealTarget: undefined,
+        witchKillTarget: undefined,
+      };
       
       io.to(roomId).emit('game-started', room);
       io.to(roomId).emit('room-update', room);
@@ -187,10 +211,53 @@ async function startServer() {
       const room = rooms[roomId];
       if (!room || userId !== room.moderatorId) return;
 
+      if (room.status === 'night' && phase === 'day') {
+        // Resolve night actions
+        // 1. Wolves
+        const votes = Object.values(room.nightData.wolfVotes);
+        let wolfTargetId: string | null = null;
+        if (votes.length > 0) {
+          const counts: Record<string, number> = {};
+          let max = 0;
+          votes.forEach(v => {
+            counts[v] = (counts[v] || 0) + 1;
+            if (counts[v] > max) { max = counts[v]; wolfTargetId = v; }
+          });
+        }
+        
+        const witchHealed = room.nightData.witchHealTarget === wolfTargetId && room.nightData.witchHealTarget != null;
+        
+        let diedTonight: string[] = [];
+        
+        if (wolfTargetId && !witchHealed) {
+          diedTonight.push(wolfTargetId);
+        }
+        if (room.nightData.witchKillTarget) {
+          diedTonight.push(room.nightData.witchKillTarget);
+        }
+        
+        diedTonight.forEach(id => {
+          const p = room.players.find(p => p.id === id);
+          if (p) p.isAlive = false;
+        });
+
+        // Check winner after deaths
+        room.winner = checkWinConditions(room.players);
+        if (room.winner) {
+          io.to(roomId).emit('game-over', { winner: room.winner });
+        }
+      }
+
       room.status = phase;
       if (phase !== 'voting') {
         room.votesRevealed = false;
         room.players.forEach(p => p.voteTarget = undefined);
+      }
+      if (phase === 'night') {
+        room.nightData.wolfVotes = {};
+        room.nightData.seerTarget = undefined;
+        room.nightData.witchHealTarget = undefined;
+        room.nightData.witchKillTarget = undefined;
       }
       
       io.to(roomId).emit('room-update', room);
@@ -279,6 +346,12 @@ async function startServer() {
       room.status = 'lobby';
       room.votesRevealed = false;
       room.winner = null;
+      room.nightData = {
+        wolfVotes: {},
+        witchHealUsed: false,
+        witchKillUsed: false,
+        cupidLovers: []
+      };
       room.players.forEach(player => {
         delete player.role;
         player.isAlive = true;
@@ -287,6 +360,42 @@ async function startServer() {
       });
 
       io.to(roomId).emit('game-reset', room);
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Night Actions
+    socket.on('night-action', ({ roomId, userId, action, targetId }) => {
+      const room = rooms[roomId];
+      if (!room || room.status !== 'night') return;
+      
+      const player = room.players.find(p => p.id === userId);
+      if (!player || !player.isAlive || !player.role) return;
+
+      switch (action) {
+        case 'wolf-vote':
+          if (player.role === 'Werewolf') {
+            room.nightData.wolfVotes[userId] = targetId;
+          }
+          break;
+        case 'seer-investigate':
+          if (player.role === 'Seer') {
+            room.nightData.seerTarget = targetId;
+          }
+          break;
+        case 'witch-heal':
+          if (player.role === 'Witch' && !room.nightData.witchHealUsed) {
+            room.nightData.witchHealTarget = targetId;
+            room.nightData.witchHealUsed = true;
+          }
+          break;
+        case 'witch-kill':
+          if (player.role === 'Witch' && !room.nightData.witchKillUsed) {
+            room.nightData.witchKillTarget = targetId;
+            room.nightData.witchKillUsed = true;
+          }
+          break;
+      }
+      
       io.to(roomId).emit('room-update', room);
     });
 

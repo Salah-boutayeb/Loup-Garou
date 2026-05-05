@@ -154,6 +154,30 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                 )}
               </div>
             </div>
+
+            {room.status === 'night' && (
+              <div className="glass p-5 mt-4">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-4">Night Activity</h3>
+                <ul className="space-y-3 text-sm text-white/70">
+                  <li className="flex justify-between items-center bg-white/5 p-2 rounded">
+                    <span className="text-red-400">Wolf Votes:</span>
+                    <span>{Object.keys(room.nightData?.wolfVotes || {}).length} voted</span>
+                  </li>
+                  <li className="flex justify-between items-center bg-white/5 p-2 rounded">
+                    <span className="text-blue-400">Seer:</span>
+                    <span>{room.nightData?.seerTarget ? 'Checked' : 'Waiting...'}</span>
+                  </li>
+                  <li className="flex flex-col gap-1 bg-white/5 p-2 rounded">
+                    <span className="text-purple-400">Witch:</span>
+                    <span className="text-xs">{room.nightData?.witchHealUsed ? 'Heal Potion Empty' : (room.nightData?.witchHealTarget ? 'Used Heal' : 'Heal Pending/Kept')}</span>
+                    <span className="text-xs">{room.nightData?.witchKillUsed ? 'Kill Potion Empty' : (room.nightData?.witchKillTarget ? 'Used Kill' : 'Kill Pending/Kept')}</span>
+                  </li>
+                </ul>
+                <div className="mt-4 text-xs text-amber-500/80 italic">
+                  Switch to Day to automatically resolve kills.
+                </div>
+              </div>
+            )}
           </aside>
 
           <section className="glass flex flex-col col-span-1 md:col-span-3 p-6">
