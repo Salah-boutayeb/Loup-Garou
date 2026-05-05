@@ -157,7 +157,51 @@ export default function ModeratorDashboard({ room, userId }: Props) {
 
             {room.status === 'night' && (
               <div className="glass p-5 mt-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-4">Night Activity</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-4">Night Activity Manager</h3>
+                
+                <div className="space-y-4 mb-6">
+                  {room.activeRole ? (
+                    <div className="bg-white/10 border border-white/20 p-3 rounded text-center">
+                      <p className="text-sm opacity-80 mb-2">Currently Awake:</p>
+                      <p className="text-xl font-bold text-[#a78bfa] uppercase drop-shadow-md mb-3">{room.activeRole}</p>
+                      <button 
+                        onClick={() => socket.emit('set-active-role', { roomId: room.id, userId, activeRole: null })}
+                        className="btn-primary w-full py-2 bg-red-900 border-red-500 text-red-100"
+                      >
+                        Put To Sleep
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center text-sm text-amber-200/80 italic p-2">
+                       All players are sleeping. Wake a role below.
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.keys(room.deck)
+                      .filter(role => {
+                         if (role === 'Werewolf' || role === 'Seer' || role === 'Witch') return true;
+                         if ((role === 'Cupid' || role === 'Thief') && room.firstNight) return true;
+                         return false;
+                      })
+                      .map(role => (
+                        <button
+                          key={role}
+                          onClick={() => socket.emit('set-active-role', { roomId: room.id, userId, activeRole: role })}
+                          disabled={room.activeRole === role}
+                          className={`py-2 px-1 text-xs rounded border transition-colors ${
+                             room.activeRole === role 
+                               ? 'bg-[#a78bfa]/20 border-[#a78bfa] text-white opacity-50 cursor-not-allowed' 
+                               : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/80 hover:text-white'
+                          }`}
+                        >
+                          Wake {role}
+                        </button>
+                    ))}
+                  </div>
+                </div>
+
+                <h3 className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-4 border-t border-white/10 pt-4">Status Map</h3>
                 <ul className="space-y-3 text-sm text-white/70">
                   {room.firstNight && (
                     <>
@@ -200,6 +244,25 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                   Waiting for {room.players.find(p => p.id === room.hunterRevengePlayerId)?.name} to choose a target.
                 </p>
               </div>
+            )}
+
+            {room.status === 'day' && room.lastNightDeaths && (
+               <div className={`glass p-5 mt-4 border ${room.lastNightDeaths.length > 0 ? 'border-red-500/50 bg-red-950/20' : 'border-blue-500/50 bg-blue-950/20'}`}>
+                 <h3 className={`text-xs font-bold uppercase tracking-widest flex items-center gap-2 mb-2 ${room.lastNightDeaths.length > 0 ? 'text-red-400' : 'text-blue-400'}`}>
+                   Morning Report
+                 </h3>
+                 {room.lastNightDeaths.length > 0 ? (
+                   <ul className="text-sm text-red-200/80 list-disc pl-4">
+                     {room.lastNightDeaths.map(id => (
+                       <li key={id}>{room.players.find(p => p.id === id)?.name} died</li>
+                     ))}
+                   </ul>
+                 ) : (
+                   <p className="text-xs text-blue-200/80">
+                     Nobody died last night.
+                   </p>
+                 )}
+               </div>
             )}
           </aside>
 

@@ -163,7 +163,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black relative">
         {volumeControl}
         
-        {me.role === 'Werewolf' ? (
+        {me.role === 'Werewolf' && room.activeRole === 'Werewolf' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="text-center">
               <Shield className="w-12 h-12 text-red-500 mx-auto mb-4" />
@@ -193,7 +193,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
               })}
             </div>
           </div>
-        ) : me.role === 'Seer' ? (
+        ) : me.role === 'Seer' && room.activeRole === 'Seer' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="text-center">
               <Eye className="w-12 h-12 text-blue-500 mx-auto mb-4" />
@@ -221,7 +221,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
               </div>
             )}
           </div>
-        ) : me.role === 'Witch' ? (
+        ) : me.role === 'Witch' && room.activeRole === 'Witch' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="text-center">
               <Droplets className="w-12 h-12 text-purple-500 mx-auto mb-4" />
@@ -275,7 +275,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
               </div>
             </div>
           </div>
-        ) : me.role === 'Cupid' && room.firstNight ? (
+        ) : me.role === 'Cupid' && room.firstNight && room.activeRole === 'Cupid' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="text-center">
               <Heart className="w-12 h-12 text-pink-500 mx-auto mb-4" />
@@ -314,7 +314,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
               </div>
             )}
           </div>
-        ) : me.role === 'Thief' && room.firstNight ? (
+        ) : me.role === 'Thief' && room.firstNight && room.activeRole === 'Thief' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
              <div className="text-center">
               <Key className="w-12 h-12 text-orange-500 mx-auto mb-4" />
@@ -350,7 +350,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
               </div>
             )}
           </div>
-        ) : me.role === 'Little Girl' ? (
+        ) : me.role === 'Little Girl' && room.activeRole === 'Werewolf' ? (
           <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
             <div className="text-center">
               <Eye className="w-12 h-12 text-sky-500 mx-auto mb-4" />
@@ -446,7 +446,29 @@ export default function PlayerDashboard({ room, userId }: Props) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 flex-1 relative">
       {volumeControl}
-      <div className="text-center mb-10 space-y-2 opacity-80">
+
+      {room.lastNightDeaths && room.status === 'day' && (
+        <div className="absolute top-16 left-0 right-0 px-4 z-10 drop-shadow-xl animate-in slide-in-from-top-4 duration-500">
+           <div className={`max-w-md mx-auto p-4 rounded-xl border flex flex-col items-center text-center ${room.lastNightDeaths.length > 0 ? 'bg-red-950/80 border-red-500' : 'bg-blue-950/80 border-blue-500'}`}>
+              <Sun className={`w-8 h-8 mb-2 ${room.lastNightDeaths.length > 0 ? 'text-red-400' : 'text-blue-400'}`} />
+              <h3 className={`font-serif italic text-lg mb-1 ${room.lastNightDeaths.length > 0 ? 'text-red-400' : 'text-blue-400'}`}>Morning Report</h3>
+              {room.lastNightDeaths.length > 0 ? (
+                <>
+                  <p className="text-white/80 text-sm mb-2">Tragedy struck the village last night. The following players were found dead:</p>
+                  <ul className="text-red-300 font-bold font-serif text-lg">
+                    {room.lastNightDeaths.map(id => (
+                      <li key={id}>{room.players.find(p => p.id === id)?.name}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-white text-sm">The village awakens peacefully. No one was harmed last night.</p>
+              )}
+           </div>
+        </div>
+      )}
+
+      <div className="text-center mb-10 mt-20 space-y-2 opacity-80">
         <h2 className="text-sm uppercase tracking-[2px] font-bold">Player View</h2>
         <p className="text-xs text-white/50">Day phase is active. Discuss with the village.</p>
       </div>

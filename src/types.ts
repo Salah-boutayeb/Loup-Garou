@@ -35,4 +35,6 @@ export interface RoomState {
   firstNight: boolean;
   hunterRevengePlayerId?: string | null;
   thiefSwapped?: boolean;
+  activeRole?: Role | null;
+  lastNightDeaths?: string[];
 }

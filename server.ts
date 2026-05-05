@@ -73,14 +73,16 @@ function checkWinConditions(players: Player[]): Winner {
   return null;
 }
 
-function executeKills(room: Room, targetIds: string[]) {
+function executeKills(room: Room, targetIds: string[]): string[] {
   const queue = [...targetIds];
+  const actuallyDied: string[] = [];
   while (queue.length > 0) {
     const id = queue.shift()!;
     const p = room.players.find(x => x.id === id);
     if (!p || !p.isAlive) continue;
     
     p.isAlive = false;
+    actuallyDied.push(p.id);
 
     if (p.isLover) {
       const otherLover = room.players.find(o => o.isLover && o.id !== id && o.isAlive);
@@ -91,6 +93,7 @@ function executeKills(room: Room, targetIds: string[]) {
       room.hunterRevengePlayerId = p.id;
     }
   }
+  return actuallyDied;
 }
 
 function generateRolesFromDeck(deck: Record<Role, number>): Role[] {
@@ -129,6 +132,8 @@ async function startServer() {
         deck: { ...defaultDeck },
         votesRevealed: false,
         winner: null,
+        activeRole: null,
+        lastNightDeaths: [],
         nightData: {
           wolfVotes: {},
           witchHealUsed: false,
@@ -220,6 +225,8 @@ async function startServer() {
       room.thiefSwapped = false;
       room.votesRevealed = false;
       room.winner = null;
+      room.activeRole = null;
+      room.lastNightDeaths = [];
       room.nightData = {
         wolfVotes: {},
         seerTarget: undefined,
@@ -261,20 +268,24 @@ async function startServer() {
         if (wolfTargetId && !witchHealed) {
           diedTonight.push(wolfTargetId);
         }
-        if (room.nightData.witchKillTarget) {
+        if (room.nightData.witchKillTarget && !diedTonight.includes(room.nightData.witchKillTarget)) {
           diedTonight.push(room.nightData.witchKillTarget);
         }
         
-        executeKills(room, diedTonight);
+        const actuallyDied = executeKills(room, diedTonight);
+        room.lastNightDeaths = actuallyDied;
 
         // Check winner after deaths
         room.winner = checkWinConditions(room.players);
         if (room.winner) {
           io.to(roomId).emit('game-over', { winner: room.winner });
         }
+      } else if (phase === 'night') {
+        room.lastNightDeaths = [];
       }
 
       room.status = phase;
+      room.activeRole = null;
       if (phase !== 'voting') {
         room.votesRevealed = false;
         room.players.forEach(p => p.voteTarget = undefined);
@@ -286,6 +297,16 @@ async function startServer() {
         room.nightData.witchKillTarget = undefined;
       }
       
+      io.to(roomId).emit('room-update', room);
+    });
+
+    // Set Active Role (Night Phase)
+    socket.on('set-active-role', ({ roomId, userId, activeRole }) => {
+      const room = rooms[roomId];
+      if (!room || userId !== room.moderatorId) return;
+      if (room.status !== 'night') return;
+      
+      room.activeRole = activeRole;
       io.to(roomId).emit('room-update', room);
     });
 
@@ -408,6 +429,8 @@ async function startServer() {
       room.status = 'lobby';
       room.votesRevealed = false;
       room.winner = null;
+      room.activeRole = null;
+      room.lastNightDeaths = [];
       room.nightData = {
         wolfVotes: {},
         witchHealUsed: false,
