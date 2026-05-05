@@ -1,6 +1,6 @@
 {
-  "name": "Werewolves of Miller's Hollow",
-  "description": "A real-time multiplayer Web app for playing Werewolves of Miller's Hollow without cards.",
+  "name": "Nightfall at Ravenbrook",
+  "description": "A real-time multiplayer Web app for playing a social deduction game of werewolves and villagers in a haunted pine forest.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": []
 }

@@ -4,12 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { socket } from '../socket';
 import { Moon, QrCode } from 'lucide-react';
 import { Scanner } from '@yudiel/react-qr-scanner';
+import IntroStory from '../components/IntroStory';
 
 export default function Home() {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => {
+    return localStorage.getItem('ravenbrook_intro_seen') !== 'true';
+  });
 
   // Initialize or retrieve userId
   useEffect(() => {
@@ -61,15 +65,26 @@ export default function Home() {
     setShowScanner(false);
   };
 
+  const handleIntroComplete = () => {
+    localStorage.setItem('ravenbrook_intro_seen', 'true');
+    setShowIntro(false);
+  };
+
+  if (showIntro) {
+    return <IntroStory onComplete={handleIntroComplete} />;
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-forest-night">
       <div className="max-w-md w-full text-center space-y-10 glass p-8 md:p-12">
         <div className="space-y-4">
           <Moon className="w-16 h-16 mx-auto text-[#ff4d4d]" />
-          <h1 className="text-3xl font-bold tracking-widest text-white uppercase mt-4">
-            Miller's <span className="text-[#ff4d4d]">Hollow</span>
+          <h1 className="text-4xl font-bold tracking-widest text-white uppercase mt-4 font-serif italic">
+            Nightfall at
+            <br />
+            <span className="text-[#ff4d4d] not-italic sans-serif tracking-[4px] font-black text-2xl">Ravenbrook</span>
           </h1>
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-white/50 pt-2">
             The village sleeps. The wolves awaken.
           </p>
         </div>

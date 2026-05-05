@@ -60,13 +60,24 @@ export default function PlayerDashboard({ room, userId }: Props) {
   }
 
   const volumeControl = (
-    <button 
-      onClick={toggleMute} 
-      className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-20"
-      aria-label="Toggle Mute"
-    >
-      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-    </button>
+    <>
+      <div className="absolute top-6 left-6 z-20 flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/20">
+          <span className="text-white font-bold text-sm">{me.name.charAt(0).toUpperCase()}</span>
+        </div>
+        <div className="hidden sm:block">
+          <p className="text-xs text-white/50 uppercase tracking-widest leading-none">Playing as</p>
+          <p className="text-sm text-white font-bold">{me.name}</p>
+        </div>
+      </div>
+      <button 
+        onClick={toggleMute} 
+        className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-20"
+        aria-label="Toggle Mute"
+      >
+        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+      </button>
+    </>
   );
 
   // Game Over handling
