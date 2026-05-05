@@ -75,10 +75,32 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-forest-night">
+    <div className="flex flex-col items-center justify-center min-h-screen px-4 bg-forest-night relative z-0">
       <div className="max-w-md w-full text-center space-y-10 glass p-8 md:p-12">
         <div className="space-y-4">
-          <Moon className="w-16 h-16 mx-auto text-[#ff4d4d]" />
+          <div className="w-24 h-24 mx-auto relative drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+            <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-2xl">
+              {/* Geometric Wolf Medallion */}
+              <circle cx="128" cy="128" r="90" fill="none" stroke="#71717a" strokeWidth="8" strokeDasharray="10 5" className="animate-[spin_60s_linear_infinite]" />
+              <circle cx="128" cy="128" r="80" fill="none" stroke="#3f3f46" strokeWidth="4"/>
+              
+              <path d="M 128 50 L 165 90 L 180 140 L 155 180 L 128 200 L 101 180 L 76 140 L 91 90 Z" fill="#3f3f46" stroke="#a1a1aa" strokeWidth="4"/>
+              <path d="M 128 50 L 165 90 L 128 120 Z" fill="#27272a"/>
+              <path d="M 128 50 L 91 90 L 128 120 Z" fill="#52525b"/>
+              <path d="M 165 90 L 180 140 L 140 145 Z" fill="#27272a"/>
+              <path d="M 91 90 L 76 140 L 116 145 Z" fill="#52525b"/>
+              <path d="M 180 140 L 155 180 L 140 145 Z" fill="#18181b"/>
+              <path d="M 76 140 L 101 180 L 116 145 Z" fill="#27272a"/>
+              <path d="M 155 180 L 128 200 L 128 140 Z" fill="#3f3f46"/>
+              <path d="M 101 180 L 128 200 L 128 140 Z" fill="#71717a"/>
+            
+              {/* Glowing Eyes */}
+              <circle cx="110" cy="115" r="8" fill="#ef4444" className="animate-pulse" />
+              <circle cx="146" cy="115" r="8" fill="#ef4444" className="animate-pulse" />
+              
+              <path d="M 128 140 L 128 190" stroke="#18181b" strokeWidth="4"/>
+            </svg>
+          </div>
           <h1 className="text-4xl font-bold tracking-widest text-white uppercase mt-4 font-serif italic">
             Nightfall at
             <br />

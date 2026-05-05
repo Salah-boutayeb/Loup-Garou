@@ -88,11 +88,14 @@ export default function Room() {
   const isModerator = room.moderatorId === userId;
   const isDay = room.status === 'day' || room.status === 'voting';
   const bgClass = isDay ? 'bg-village-day' : 'bg-forest-night';
+  const bgImage = isDay 
+    ? 'https://images.unsplash.com/photo-1533154868016-1de63162fb16?q=80&w=2000&auto=format&fit=crop'
+    : 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2000&auto=format&fit=crop';
 
   if (!hasJoined) {
     return (
-      <div className={`flex items-center justify-center min-h-screen px-4 ${bgClass}`}>
-        <form onSubmit={handleJoin} className="glass p-8 max-w-sm w-full space-y-6">
+      <div className={`flex items-center justify-center min-h-screen px-4 ${bgClass} relative z-0`}>
+        <form onSubmit={handleJoin} className="glass p-8 max-w-sm w-full space-y-6 relative z-10">
           <h2 className="text-2xl font-bold tracking-widest uppercase text-white text-center">Join <span className="text-[#ff4d4d]">Village</span></h2>
           <div>
             <label className="block text-white/50 text-xs uppercase tracking-wider mb-2">Display Name</label>
@@ -118,16 +121,18 @@ export default function Room() {
   }
 
   return (
-    <div className={`min-h-screen ${bgClass}`}>
-      {room.status === 'lobby' ? (
-        <Lobby room={room} isModerator={isModerator} userId={userId} />
-      ) : (
-        isModerator ? (
-          <ModeratorDashboard room={room} userId={userId} />
+    <div className={`min-h-screen ${bgClass} relative z-0`}>
+      <div className="relative z-10 w-full h-full">
+        {room.status === 'lobby' ? (
+          <Lobby room={room} isModerator={isModerator} userId={userId} />
         ) : (
-          <PlayerDashboard room={room} userId={userId} />
-        )
-      )}
+          isModerator ? (
+            <ModeratorDashboard room={room} userId={userId} />
+          ) : (
+            <PlayerDashboard room={room} userId={userId} />
+          )
+        )}
+      </div>
     </div>
   );
 }

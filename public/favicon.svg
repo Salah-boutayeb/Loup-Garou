@@ -1,16 +1,37 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-  <rect width="256" height="256" rx="60" fill="#120c1f"/>
+  <rect width="256" height="256" rx="60" fill="#18181b"/>
+  <!-- Medallion Chain -->
+  <circle cx="128" cy="128" r="90" fill="none" stroke="#71717a" stroke-width="8" stroke-dasharray="10 5"/>
+  <circle cx="128" cy="128" r="80" fill="none" stroke="#3f3f46" stroke-width="4"/>
   
-  <!-- Moon -->
-  <circle cx="128" cy="115" r="75" fill="#e2d9f3"/>
-  <circle cx="100" cy="90" r="15" fill="#c3b1e1" opacity="0.4"/>
-  <circle cx="150" cy="140" r="20" fill="#c3b1e1" opacity="0.3"/>
-  <circle cx="160" cy="80" r="10" fill="#c3b1e1" opacity="0.3"/>
+  <!-- Wolf Head Medallion (Geometric style) -->
+  <path d="M 128 50 
+           L 165 90 
+           L 180 140 
+           L 155 180 
+           L 128 200 
+           L 101 180 
+           L 76 140 
+           L 91 90 Z" 
+        fill="#3f3f46" stroke="#a1a1aa" stroke-width="4"/>
+        
+  <!-- Inner dark parts -->
+  <path d="M 128 50 L 165 90 L 128 120 Z" fill="#27272a"/>
+  <path d="M 128 50 L 91 90 L 128 120 Z" fill="#52525b"/>
   
-  <!-- Wolf Silhouette -->
-  <path d="M 80 256 L 80 200 C 80 160 100 130 120 120 
-           L 145 90 L 155 95 L 140 115 
-           L 150 110 L 160 115 L 140 135
-           C 120 150 120 170 120 200 L 120 256 Z" 
-        fill="#120c1f"/>
+  <path d="M 165 90 L 180 140 L 140 145 Z" fill="#27272a"/>
+  <path d="M 91 90 L 76 140 L 116 145 Z" fill="#52525b"/>
+
+  <path d="M 180 140 L 155 180 L 140 145 Z" fill="#18181b"/>
+  <path d="M 76 140 L 101 180 L 116 145 Z" fill="#27272a"/>
+
+  <path d="M 155 180 L 128 200 L 128 140 Z" fill="#3f3f46"/>
+  <path d="M 101 180 L 128 200 L 128 140 Z" fill="#71717a"/>
+
+  <!-- Glowing Eyes -->
+  <circle cx="110" cy="115" r="8" fill="#ef4444"/>
+  <circle cx="146" cy="115" r="8" fill="#ef4444"/>
+  
+  <!-- Eyebrows / snout lines -->
+  <path d="M 128 140 L 128 190" stroke="#18181b" stroke-width="4"/>
 </svg>

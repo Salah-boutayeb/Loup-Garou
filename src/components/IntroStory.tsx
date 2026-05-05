@@ -4,37 +4,31 @@ import { ChevronRight, SkipForward } from 'lucide-react';
 
 const storySlides = [
   {
-    title: "The Village of Ravenbrook",
-    text: "Nestled deep within the ancient, mist-shrouded pines of the Blackwood Forest lies the village of Ravenbrook. For generations, the villagers lived in peace, protected by the eerie silence of the woods.",
-    image: "https://images.unsplash.com/photo-1542223616-949fb1e28b15?q=80&w=2000&auto=format&fit=crop"
+    title: "The Continent's Edge",
+    text: "At the edge of the Northern Realms lies the village of Ravenbrook. A place where monsters of myth are more than just fireside tales. For generations, the villagers lived in uneasy peace, protected only by the silver and steel of passing monster hunters.",
+    image: "https://images.unsplash.com/photo-1533154868016-1de63162fb16?q=80&w=2000&auto=format&fit=crop"
   },
   {
-    title: "A Dark Curse",
-    text: "But an ancient curse has awakened. By day, they are friends, neighbors, and kin. But when the full moon rises, a dark transformation occurs. Werewolves lurk among them, thirsty for blood.",
-    image: "https://images.unsplash.com/photo-1514373941175-5ca31cb0f2fd?q=80&w=2000&auto=format&fit=crop"
-  },
-  {
-    title: "Trust No One",
-    text: "Every night, the wolves claim a victim. Every day, the villagers must investigate, argue, and vote to lynch those they suspect to be beasts. Who is telling the truth? Who is lying? Only time will tell.",
+    title: "The Curse of the Moon",
+    text: "But an ancient curse has awakened. By day, they are friends and neighbors. But when the moon bleeds red, the beast within them surfaces. Lycanthropes lurk among them, thirsty for blood and chaos.",
     image: "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=2000&auto=format&fit=crop"
   },
   {
-    title: "Survive the Night",
-    text: "Use your role to your advantage. The Seer may uncover the truth. The Witch holds the power of life and death. The Little Girl can peek through the shadows. Will the villagers survive, or will Ravenbrook fall to the wolves?",
-    image: "https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?q=80&w=2000&auto=format&fit=crop"
+    title: "Silver and Steel",
+    text: "Every night, the pack claims a victim. Every day, the survivors must investigate, argue, and vote to lynch those they suspect to be monsters. The stakes are death; trust is a luxury no one can afford.",
+    image: "https://images.unsplash.com/photo-1614059082728-662cbab3ab9b?q=80&w=2000&auto=format&fit=crop"
+  },
+  {
+    title: "The Path Ahead",
+    text: "Use your abilities to survive. The Seer's visions pierce the veil, the Witch's alchemy holds the power of life and death, and the Hunters stand ready. Draw your swords—will you cleanse Ravenbrook, or feed the beasts?",
+    image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2000&auto=format&fit=crop"
   }
 ];
 
 export default function IntroStory({ onComplete }: { onComplete: () => void }) {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Preload images
-  useEffect(() => {
-    storySlides.forEach(slide => {
-      const img = new Image();
-      img.src = slide.image;
-    });
-  }, []);
+  // No preloading needed
 
   const nextSlide = () => {
     if (currentSlide === storySlides.length - 1) {
@@ -53,10 +47,9 @@ export default function IntroStory({ onComplete }: { onComplete: () => void }) {
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 1 }}
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 bg-[#0d0a14]"
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent z-10" />
-          <img src={storySlides[currentSlide].image} alt="Story background" className="w-full h-full object-cover opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent z-10" />
         </motion.div>
       </AnimatePresence>
 
