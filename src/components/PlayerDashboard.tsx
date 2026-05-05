@@ -1,6 +1,6 @@
 import { RoomState, Role } from '../types';
 import { useState, useEffect } from 'react';
-import { Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost, Moon, Vote, VolumeX, Volume2 } from 'lucide-react';
+import { Shield, Eye, Droplets, Crosshair, Pickaxe, Heart, Key, Ghost, Moon, Vote, VolumeX, Volume2, Sun } from 'lucide-react';
 import { motion } from 'motion/react';
 import { socket } from '../socket';
 import { useSoundEngine } from '../lib/useSoundEngine';
