@@ -1,6 +1,6 @@
 import { RoomState, GamePhase } from '../types';
 import { socket } from '../socket';
-import { RefreshCw, Users, Eye, Moon, Sun, Vote, UserX, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
+import { RefreshCw, Users, Eye, Moon, Sun, Vote, UserX, AlertTriangle, Volume2, VolumeX, Heart, Key } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSoundEngine } from '../lib/useSoundEngine';
 import GameOverScreen from './GameOver';
@@ -159,16 +159,28 @@ export default function ModeratorDashboard({ room, userId }: Props) {
               <div className="glass p-5 mt-4">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#a78bfa] mb-4">Night Activity</h3>
                 <ul className="space-y-3 text-sm text-white/70">
+                  {room.firstNight && (
+                    <>
+                      <li className="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <span className="text-pink-400 font-bold">Cupid:</span>
+                        <span>{room.nightData?.cupidLovers?.length === 2 ? 'Lovers Chosen' : 'Waiting...'}</span>
+                      </li>
+                      <li className="flex justify-between items-center bg-white/5 p-2 rounded">
+                        <span className="text-orange-400 font-bold">Thief:</span>
+                        <span>{room.thiefSwapped ? 'Swapped' : 'Waiting/Skipped'}</span>
+                      </li>
+                    </>
+                  )}
                   <li className="flex justify-between items-center bg-white/5 p-2 rounded">
-                    <span className="text-red-400">Wolf Votes:</span>
+                    <span className="text-red-400 font-bold">Wolf Votes:</span>
                     <span>{Object.keys(room.nightData?.wolfVotes || {}).length} voted</span>
                   </li>
                   <li className="flex justify-between items-center bg-white/5 p-2 rounded">
-                    <span className="text-blue-400">Seer:</span>
+                    <span className="text-blue-400 font-bold">Seer:</span>
                     <span>{room.nightData?.seerTarget ? 'Checked' : 'Waiting...'}</span>
                   </li>
                   <li className="flex flex-col gap-1 bg-white/5 p-2 rounded">
-                    <span className="text-purple-400">Witch:</span>
+                    <span className="text-purple-400 font-bold">Witch:</span>
                     <span className="text-xs">{room.nightData?.witchHealUsed ? 'Heal Potion Empty' : (room.nightData?.witchHealTarget ? 'Used Heal' : 'Heal Pending/Kept')}</span>
                     <span className="text-xs">{room.nightData?.witchKillUsed ? 'Kill Potion Empty' : (room.nightData?.witchKillTarget ? 'Used Kill' : 'Kill Pending/Kept')}</span>
                   </li>
@@ -176,6 +188,17 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                 <div className="mt-4 text-xs text-amber-500/80 italic">
                   Switch to Day to automatically resolve kills.
                 </div>
+              </div>
+            )}
+
+            {room.hunterRevengePlayerId && (
+              <div className="glass p-5 mt-4 border border-amber-500/50 bg-amber-950/20">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-amber-500 flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4" /> Hunter Revenge Pending
+                </h3>
+                <p className="text-xs text-amber-200/80">
+                  Waiting for {room.players.find(p => p.id === room.hunterRevengePlayerId)?.name} to choose a target.
+                </p>
               </div>
             )}
           </aside>
@@ -218,6 +241,7 @@ export default function ModeratorDashboard({ room, userId }: Props) {
                         <td className="py-4 font-medium flex items-center gap-2">
                           {!p.isAlive && <UserX className="w-4 h-4 text-[#ff4d4d]" />}
                           {p.name}
+                          {p.isLover && <Heart className="w-3 h-3 text-pink-500" />}
                         </td>
                         <td className={`py-4 font-bold tracking-wide uppercase text-xs ${p.role ? roleColors[p.role] : ''}`}>
                           {p.role || 'Unknown'}

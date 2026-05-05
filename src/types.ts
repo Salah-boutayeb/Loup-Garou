@@ -32,4 +32,7 @@ export interface RoomState {
   votesRevealed: boolean;
   winner?: Winner;
   nightData: NightData;
+  firstNight: boolean;
+  hunterRevengePlayerId?: string | null;
+  thiefSwapped?: boolean;
 }

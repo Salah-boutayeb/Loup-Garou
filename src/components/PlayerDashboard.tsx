@@ -24,6 +24,7 @@ const roleDetails: Record<Role, { title: string, obj: string, icon: any, color: 
 
 export default function PlayerDashboard({ room, userId }: Props) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [specialPicks, setSpecialPicks] = useState<string[]>([]);
   const [isMuted, setIsMuted] = useState(() => {
     return localStorage.getItem('werewolf_muted') === 'true';
   });
@@ -38,6 +39,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
   
   // Watch for phase changes to trigger sounds
   useEffect(() => {
+    setSpecialPicks([]); // Reset picks on phase change
     if (room.status === 'night') playSound('night');
     if (room.status === 'voting') playSound('gavel');
     if (room.winner === 'wolves') playSound('defeat'); 
@@ -67,6 +69,45 @@ export default function PlayerDashboard({ room, userId }: Props) {
         {volumeControl}
         <GameOverScreen winner={room.winner} myRole={me.role} isModerator={false} />
       </>
+    );
+  }
+
+  // Hunter Revenge
+  if (room.hunterRevengePlayerId === userId) {
+    const handleShoot = () => {
+      if (specialPicks.length === 1) {
+        socket.emit('special-action', { roomId: room.id, userId, action: 'hunter-shoot', targetIds: specialPicks });
+      }
+    };
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-black relative">
+        {volumeControl}
+        <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="max-w-md w-full space-y-6 text-center">
+          <Crosshair className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-3xl font-serif text-amber-500 mb-2">Take Your Revenge</h2>
+          <p className="text-sm text-amber-200/60 uppercase tracking-widest mb-6">Select someone to take down with you</p>
+          <div className="space-y-2 text-left">
+            {room.players.filter(p => p.isAlive).map(p => (
+              <button
+                key={p.id}
+                onClick={() => setSpecialPicks([p.id])}
+                className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${
+                  specialPicks.includes(p.id) ? 'bg-amber-900 border-amber-500' : 'bg-amber-950/20 border-amber-900/50 hover:bg-amber-900/40'
+                }`}
+              >
+                <span className="font-bold text-amber-100">{p.name}</span>
+              </button>
+            ))}
+          </div>
+          <button 
+            onClick={handleShoot}
+            disabled={specialPicks.length !== 1}
+            className="w-full mt-6 py-4 rounded font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed bg-amber-600 text-white"
+          >
+            Shoot
+          </button>
+        </motion.div>
+      </div>
     );
   }
 
@@ -234,6 +275,101 @@ export default function PlayerDashboard({ room, userId }: Props) {
               </div>
             </div>
           </div>
+        ) : me.role === 'Cupid' && room.firstNight ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="text-center">
+              <Heart className="w-12 h-12 text-pink-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-pink-500 mb-2">Cupid's Arrow</h2>
+              <p className="text-sm text-pink-300/50 tracking-widest uppercase">Choose two lovers</p>
+            </div>
+            {room.nightData.cupidLovers && room.nightData.cupidLovers.length === 2 ? (
+              <div className="glass p-8 text-center rounded-xl border-pink-500/30">
+                <p className="text-pink-200">You paired:</p>
+                <div className="text-xl font-serif text-pink-500 italic mt-2">
+                  {room.players.find(p => p.id === room.nightData.cupidLovers[0])?.name} & {room.players.find(p => p.id === room.nightData.cupidLovers[1])?.name}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {alivePlayers.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSpecialPicks(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id].slice(0, 2))}
+                      className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${
+                        specialPicks.includes(p.id) ? 'bg-pink-900 border-pink-500 text-pink-100' : 'bg-pink-950/20 border-pink-900/50 hover:bg-pink-900/40 text-pink-100/50'
+                      }`}
+                    >
+                      <span className="font-bold">{p.name} {p.id === userId && '(You)'}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => socket.emit('special-action', { roomId: room.id, userId, action: 'cupid-pick', targetIds: specialPicks })}
+                  disabled={specialPicks.length !== 2}
+                  className="w-full py-4 rounded font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed bg-pink-600 text-white"
+                >
+                  Shoot Arrows
+                </button>
+              </div>
+            )}
+          </div>
+        ) : me.role === 'Thief' && room.firstNight ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+             <div className="text-center">
+              <Key className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-orange-500 mb-2">Thief's Swap</h2>
+              <p className="text-sm text-orange-300/50 tracking-widest uppercase">Swap two roles</p>
+            </div>
+            {room.thiefSwapped ? (
+              <div className="glass p-8 text-center rounded-xl border-orange-500/30">
+                <p className="text-orange-200">You swapped two players' identities.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {alivePlayers.filter(p => p.id !== userId).map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSpecialPicks(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id].slice(0, 2))}
+                      className={`w-full py-4 px-4 flex justify-between items-center rounded border transition-colors ${
+                        specialPicks.includes(p.id) ? 'bg-orange-900 border-orange-500 text-orange-100' : 'bg-orange-950/20 border-orange-900/50 hover:bg-orange-900/40 text-orange-100/50'
+                      }`}
+                    >
+                      <span className="font-bold">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => socket.emit('special-action', { roomId: room.id, userId, action: 'thief-swap', targetIds: specialPicks })}
+                  disabled={specialPicks.length !== 2}
+                  className="w-full py-4 rounded font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed bg-orange-600 text-white"
+                >
+                  Swap Roles
+                </button>
+              </div>
+            )}
+          </div>
+        ) : me.role === 'Little Girl' ? (
+          <div className="w-full max-w-md space-y-6 animate-in fade-in zoom-in duration-500">
+            <div className="text-center">
+              <Eye className="w-12 h-12 text-sky-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-serif text-sky-500 mb-2">Little Girl's Peek</h2>
+              <p className="text-sm text-sky-300/50 tracking-widest uppercase mb-4">Shh... The wolves are plotting.</p>
+              <div className="glass p-4 rounded-xl border-sky-500/30 text-left">
+                 <h3 className="text-sky-300 font-bold mb-2">Wolf Activity:</h3>
+                 {Object.keys(room.nightData.wolfVotes).length > 0 ? (
+                    <ul className="list-disc pl-5 text-sky-100 text-sm">
+                      {Object.entries(room.nightData.wolfVotes).map(([wid, tid]) => (
+                         <li key={wid}>{room.players.find(p=>p.id === wid)?.name} voted for <span className="text-red-400 font-bold">{room.players.find(p=>p.id===tid)?.name}</span></li>
+                      ))}
+                    </ul>
+                 ) : (
+                    <p className="text-sky-100/50 italic text-sm">No wolves have acted yet...</p>
+                 )}
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="text-center animate-pulse">
             <Moon className="w-16 h-16 text-blue-900 mx-auto mb-6 opacity-50" />
@@ -283,6 +419,7 @@ export default function PlayerDashboard({ room, userId }: Props) {
                  <span className="font-bold">
                    {p.name} 
                    {isMe && <span className="opacity-50 text-xs ml-1">(You)</span>}
+                   {p.isLover && me.isLover && <Heart className="w-3 h-3 text-pink-500 inline ml-2" />}
                  </span>
                  {room.votesRevealed ? (
                    votesForP > 0 ? (
@@ -346,6 +483,12 @@ export default function PlayerDashboard({ room, userId }: Props) {
             <h3 className="text-2xl mb-2 font-serif italic text-white">
               {details.title}
             </h3>
+
+            {me.isLover && (
+              <div className="flex items-center gap-1 text-pink-500 font-bold text-xs uppercase mb-2">
+                <Heart className="w-3 h-3" /> Lover
+              </div>
+            )}
             
             <p className="text-[11px] opacity-60 px-2 leading-relaxed">
               {details.obj}

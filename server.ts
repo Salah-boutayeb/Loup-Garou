@@ -39,6 +39,9 @@ interface Room {
   votesRevealed: boolean;
   winner: Winner;
   nightData: NightData;
+  firstNight: boolean;
+  hunterRevengePlayerId?: string | null;
+  thiefSwapped?: boolean;
 }
 
 const rooms: Record<string, Room> = {};
@@ -68,6 +71,26 @@ function checkWinConditions(players: Player[]): Winner {
   }
   
   return null;
+}
+
+function executeKills(room: Room, targetIds: string[]) {
+  const queue = [...targetIds];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    const p = room.players.find(x => x.id === id);
+    if (!p || !p.isAlive) continue;
+    
+    p.isAlive = false;
+
+    if (p.isLover) {
+      const otherLover = room.players.find(o => o.isLover && o.id !== id && o.isAlive);
+      if (otherLover) queue.push(otherLover.id);
+    }
+    
+    if (p.role === 'Hunter') {
+      room.hunterRevengePlayerId = p.id;
+    }
+  }
 }
 
 function generateRolesFromDeck(deck: Record<Role, number>): Role[] {
@@ -192,14 +215,19 @@ async function startServer() {
         player.isLover = false; // Reset lovers
       });
       room.status = 'night';
+      room.firstNight = true;
+      room.hunterRevengePlayerId = null;
+      room.thiefSwapped = false;
       room.votesRevealed = false;
       room.winner = null;
       room.nightData = {
-        ...room.nightData,
         wolfVotes: {},
         seerTarget: undefined,
         witchHealTarget: undefined,
         witchKillTarget: undefined,
+        witchHealUsed: false,
+        witchKillUsed: false,
+        cupidLovers: []
       };
       
       io.to(roomId).emit('game-started', room);
@@ -212,6 +240,7 @@ async function startServer() {
       if (!room || userId !== room.moderatorId) return;
 
       if (room.status === 'night' && phase === 'day') {
+        room.firstNight = false;
         // Resolve night actions
         // 1. Wolves
         const votes = Object.values(room.nightData.wolfVotes);
@@ -236,10 +265,7 @@ async function startServer() {
           diedTonight.push(room.nightData.witchKillTarget);
         }
         
-        diedTonight.forEach(id => {
-          const p = room.players.find(p => p.id === id);
-          if (p) p.isAlive = false;
-        });
+        executeKills(room, diedTonight);
 
         // Check winner after deaths
         room.winner = checkWinConditions(room.players);
@@ -307,14 +333,11 @@ async function startServer() {
 
       // Eliminate the highest voted player if there's no tie
       if (!tie && eliminatedId) {
-        const target = room.players.find(p => p.id === eliminatedId);
-        if (target) {
-          target.isAlive = false;
-          // Only check win if someone died
-          room.winner = checkWinConditions(room.players);
-          if (room.winner) {
-            io.to(roomId).emit('game-over', { winner: room.winner });
-          }
+        executeKills(room, [eliminatedId]);
+        // Only check win if someone died
+        room.winner = checkWinConditions(room.players);
+        if (room.winner) {
+          io.to(roomId).emit('game-over', { winner: room.winner });
         }
       }
 
@@ -328,12 +351,51 @@ async function startServer() {
       
       const target = room.players.find(p => p.id === targetId);
       if (target) {
-        target.isAlive = isAlive;
+        if (!isAlive) {
+          executeKills(room, [targetId]);
+        } else {
+          target.isAlive = true;
+        }
         room.winner = checkWinConditions(room.players);
         if (room.winner) {
           io.to(roomId).emit('game-over', { winner: room.winner });
         }
         io.to(roomId).emit('room-update', room);
+      }
+    });
+
+    socket.on('special-action', ({ roomId, userId, action, targetIds }) => {
+      const room = rooms[roomId];
+      if (!room) return;
+      const player = room.players.find(p => p.id === userId);
+      if (!player) return;
+
+      if (action === 'hunter-shoot' && room.hunterRevengePlayerId === userId) {
+        executeKills(room, targetIds);
+        room.hunterRevengePlayerId = null;
+        room.winner = checkWinConditions(room.players);
+        if (room.winner) {
+          io.to(roomId).emit('game-over', { winner: room.winner });
+        }
+        io.to(roomId).emit('room-update', room);
+      } else if (action === 'cupid-pick' && room.firstNight && player.role === 'Cupid') {
+        const [p1, p2] = targetIds;
+        room.players.forEach(p => {
+          if (p.id === p1 || p.id === p2) p.isLover = true;
+        });
+        room.nightData.cupidLovers = [p1, p2];
+        io.to(roomId).emit('room-update', room);
+      } else if (action === 'thief-swap' && room.firstNight && player.role === 'Thief' && !room.thiefSwapped) {
+        const [p1, p2] = targetIds;
+        const player1 = room.players.find(p => p.id === p1);
+        const player2 = room.players.find(p => p.id === p2);
+        if (player1 && player2) {
+          const temp = player1.role;
+          player1.role = player2.role;
+          player2.role = temp;
+          room.thiefSwapped = true;
+          io.to(roomId).emit('room-update', room);
+        }
       }
     });
 
